@@ -47,6 +47,17 @@ func TestValidateCertificate(t *testing.T) {
 	}
 }
 
+func TestCoveredDomains(t *testing.T) {
+	certPEM := testCertificatePEM(t, "cdn.example.com")
+	covered, err := coveredDomains(certPEM, []string{"cdn.example.com", "other.example.com"})
+	if err != nil {
+		t.Fatalf("coveredDomains failed: %v", err)
+	}
+	if len(covered) != 1 || covered[0] != "cdn.example.com" {
+		t.Fatalf("covered domains = %v", covered)
+	}
+}
+
 func TestHandleUpdatesCDN(t *testing.T) {
 	certPEM := testCertificatePEM(t, "cdn.example.com")
 	keyPEM := []byte("-----BEGIN PRIVATE KEY-----\nredacted\n-----END PRIVATE KEY-----\n")

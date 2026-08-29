@@ -161,21 +161,27 @@ func (h *Handler) Handle(ctx context.Context, event caddy.Event) error {
 	if err != nil {
 		return fmt.Errorf("loading private key from storage: %w", err)
 	}
-	if err := validateCertificate(certPEM, h.Domains); err != nil {
+	domains, err := coveredDomains(certPEM, h.Domains)
+	if err != nil {
 		return err
 	}
 	certName := h.CertName
 	if certName == "" {
 		certName = identifier
 	}
-	if err := h.updateCDN(ctx, certName, string(certPEM), string(keyPEM)); err != nil {
+	if err := h.updateCDN(ctx, certName, domains, string(certPEM), string(keyPEM)); err != nil {
 		return err
 	}
-	h.logger.Info("synchronized certificate to Alibaba Cloud CDN", zap.Strings("domains", h.Domains), zap.String("certificate", certName))
+	h.logger.Info("synchronized certificate to Alibaba Cloud CDN", zap.Strings("domains", domains), zap.String("certificate", certName))
 	return nil
 }
 
 func validateCertificate(certPEM []byte, domains []string) error {
+	_, err := coveredDomains(certPEM, domains)
+	return err
+}
+
+func coveredDomains(certPEM []byte, domains []string) ([]string, error) {
 	var rest = certPEM
 	var certs []*x509.Certificate
 	for len(rest) > 0 {
@@ -189,19 +195,23 @@ func validateCertificate(certPEM []byte, domains []string) error {
 		}
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return fmt.Errorf("parsing certificate: %w", err)
+			return nil, fmt.Errorf("parsing certificate: %w", err)
 		}
 		certs = append(certs, cert)
 	}
 	if len(certs) == 0 {
-		return errors.New("certificate does not contain a PEM certificate")
+		return nil, errors.New("certificate does not contain a PEM certificate")
 	}
+	covered := make([]string, 0, len(domains))
 	for _, domain := range domains {
-		if err := certs[0].VerifyHostname(domain); err != nil {
-			return fmt.Errorf("certificate does not cover CDN domain %q: %w", domain, err)
+		if err := certs[0].VerifyHostname(domain); err == nil {
+			covered = append(covered, domain)
 		}
 	}
-	return nil
+	if len(covered) == 0 {
+		return nil, errors.New("certificate does not cover any configured CDN domain")
+	}
+	return covered, nil
 }
 
 // UnmarshalCaddyfile sets up the handler from Caddyfile tokens. Syntax:
@@ -270,13 +280,13 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-func (h *Handler) updateCDN(ctx context.Context, certName, certPEM, keyPEM string) error {
+func (h *Handler) updateCDN(ctx context.Context, certName string, domains []string, certPEM, keyPEM string) error {
 	params := map[string]string{
 		"AccessKeyId":      h.AccessKeyID,
 		"Action":           "BatchSetCdnDomainServerCertificate",
 		"CertName":         certName,
 		"CertType":         "upload",
-		"DomainName":       strings.Join(h.Domains, ","),
+		"DomainName":       strings.Join(domains, ","),
 		"Format":           "JSON",
 		"ForceSet":         boolString(h.ForceSet),
 		"SSLPri":           keyPEM,
