@@ -176,11 +176,6 @@ func (h *Handler) Handle(ctx context.Context, event caddy.Event) error {
 	return nil
 }
 
-func validateCertificate(certPEM []byte, domains []string) error {
-	_, err := coveredDomains(certPEM, domains)
-	return err
-}
-
 func coveredDomains(certPEM []byte, domains []string) ([]string, error) {
 	rest := certPEM
 	var certs []*x509.Certificate
@@ -332,7 +327,7 @@ func (h *Handler) updateCDN(ctx context.Context, certName string, domains []stri
 		RequestID string `json:"RequestId"`
 	}
 	if err := json.Unmarshal(body, &apiResponse); err == nil && apiResponse.Code != "" {
-		return fmt.Errorf("Alibaba Cloud CDN rejected certificate update: %s (%s)", apiResponse.Code, apiResponse.Message)
+		return fmt.Errorf("alibaba cloud CDN rejected certificate update: %s (%s)", apiResponse.Code, apiResponse.Message)
 	}
 	return nil
 }

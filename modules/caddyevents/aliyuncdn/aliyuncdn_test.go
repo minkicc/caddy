@@ -39,10 +39,10 @@ func TestSign(t *testing.T) {
 
 func TestValidateCertificate(t *testing.T) {
 	certPEM := testCertificatePEM(t, "cdn.example.com")
-	if err := validateCertificate(certPEM, []string{"cdn.example.com"}); err != nil {
+	if _, err := coveredDomains(certPEM, []string{"cdn.example.com"}); err != nil {
 		t.Fatalf("valid certificate rejected: %v", err)
 	}
-	if err := validateCertificate(certPEM, []string{"other.example.com"}); err == nil {
+	if _, err := coveredDomains(certPEM, []string{"other.example.com"}); err == nil {
 		t.Fatal("certificate for another domain was accepted")
 	}
 }
