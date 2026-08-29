@@ -84,6 +84,9 @@ jobs:
           check-latest: true
   
   dependency-review:
+    # GitHub's dependency review requires the Dependency Graph, which is not
+    # available on this fork. Keep it enabled for the canonical repository.
+    if: github.repository == 'caddyserver/caddy'
     runs-on: ubuntu-latest
     permissions:
       contents: read
