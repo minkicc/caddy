@@ -20,9 +20,10 @@
 package alidns
 
 import (
+	libdnsalidns "github.com/libdns/alidns"
+
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	libdnsalidns "github.com/libdns/alidns"
 )
 
 // Provider wraps the libdns AliDNS provider as a Caddy module.

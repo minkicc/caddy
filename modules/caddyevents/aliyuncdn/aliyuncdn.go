@@ -19,7 +19,7 @@ package aliyuncdn
 import (
 	"context"
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // Alibaba Cloud RPC API requires HMAC-SHA1 signing.
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -182,7 +182,7 @@ func validateCertificate(certPEM []byte, domains []string) error {
 }
 
 func coveredDomains(certPEM []byte, domains []string) ([]string, error) {
-	var rest = certPEM
+	rest := certPEM
 	var certs []*x509.Certificate
 	for len(rest) > 0 {
 		block, remaining := pem.Decode(rest)
@@ -324,7 +324,7 @@ func (h *Handler) updateCDN(ctx context.Context, certName string, domains []stri
 		return fmt.Errorf("reading Alibaba Cloud CDN response: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("Alibaba Cloud CDN returned HTTP %s: %s", resp.Status, strings.TrimSpace(string(body)))
+		return fmt.Errorf("alibaba cloud CDN returned HTTP %s: %s", resp.Status, strings.TrimSpace(string(body)))
 	}
 	var apiResponse struct {
 		Code      string `json:"Code"`
